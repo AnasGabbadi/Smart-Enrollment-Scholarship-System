@@ -30,6 +30,13 @@ logs/
 
 # Python cache
 __pycache__/
+.pytest_cache/
+
+# Python virtual environments
+venv/
+.venv/
+.venv*/
+env/
 
 # Node modules
 node_modules/
