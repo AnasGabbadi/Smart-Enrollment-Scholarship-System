@@ -96,6 +96,11 @@ The app opens at `http://localhost:3000`. The API runs at `http://localhost:8000
 
 The synthetic dataset (`moroccan_students_scholarship_dataset_500k.csv`) contains 500,000 Moroccan student records with features such as GPA, exam scores, family income, dependents, distance, region, and labeled targets (financial capacity, scholarship class, enrollment probability).
 
+## Documentation
+
+- [Technical documentation](docs/DOCUMENTATION.md) — architecture diagrams, data flow, ML model diagrams, use-case/sequence/activity diagrams (in French)
+- [Interactive presentation guide](docs/PRESENTATION_README.md) — how the 15-slide in-app presentation feature works, navigation, and content per slide (in French)
+
 ## License
 
 Built for the academic project "Système Intelligent d'Admission et d'Attribution de Bourses" — Academic Year 2025–2026.
