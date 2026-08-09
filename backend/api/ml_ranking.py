@@ -2,6 +2,7 @@
 API endpoints for ML-based student ranking and recommendations
 Ranks pending students by merit for scholarship allocation respecting yearly quotas
 """
+import logging
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import List, Dict, Any
@@ -9,6 +10,8 @@ from modeles.regression_lineaire import modele_regression
 from modeles.arbre_decision import modele_arbre
 from modeles.svm import modele_svm
 from utilitaires.base_donnees import GestionnaireBD
+
+logger = logging.getLogger(__name__)
 
 routeur_ml_ranking = APIRouter(
     prefix="/api/v1/ml-ranking",
@@ -140,7 +143,7 @@ def extraire_features_etudiant(student: Dict[str, Any]) -> List[float]:
         distance = float(distance) if distance else 0
         
         return [gpa, note_examen, revenu, dependants, distance]
-    
+
     except Exception as e:
         print(f"Error extracting features: {str(e)}")
         return [0, 0, 0, 0, 0]
@@ -158,11 +161,11 @@ async def obtenir_info_modeles():
             "total_features": 5,
             "feature_names": ["GPA", "Note Examen", "Revenu", "Dépendants", "Distance"]
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving model information: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Error retrieving model information")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_ml_ranking.get("/models-statistics")
@@ -225,11 +228,11 @@ async def obtenir_stats_modeles():
             }
         }
         
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving model statistics: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Error retrieving model statistics")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_ml_ranking.get("/rank-students/{year}")
@@ -491,11 +494,9 @@ async def ranger_etudiants_par_annee(year: int):
         
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error ranking students: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Error ranking students")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_ml_ranking.get("/rank-summary/{year}")
@@ -524,8 +525,6 @@ async def obtenir_resume_rangement(year: int):
         
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating ranking summary: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Error generating ranking summary")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")

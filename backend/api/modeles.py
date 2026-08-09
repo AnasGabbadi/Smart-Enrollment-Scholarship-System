@@ -2,10 +2,13 @@
 Endpoints API pour les modèles ML
 Fournit les statistiques et performances de chaque modèle
 """
+import logging
 from fastapi import APIRouter, HTTPException
 from typing import Dict, List
 from datetime import datetime
 from utilitaires.base_donnees import GestionnaireBD
+
+logger = logging.getLogger(__name__)
 
 # Créer le routeur avec le préfixe /api/v1/modeles
 routeur_modeles = APIRouter(
@@ -143,14 +146,11 @@ async def lister_modeles():
             "total": len(modeles),
             "date_generation": datetime.utcnow().isoformat()
         }
-    except Exception as e:
-        print(f"Error in lister_modeles: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des modèles: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération des modèles")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_modeles.get("/{model_id}")
@@ -193,11 +193,9 @@ async def obtenir_modele(model_id: str):
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération du modèle: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la récupération du modèle")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_modeles.get("/{model_id}/performance")
@@ -230,11 +228,9 @@ async def obtenir_performance_modele(model_id: str):
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des performances: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la récupération des performances")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_modeles.get("/{model_id}/statistiques")
@@ -349,11 +345,9 @@ async def obtenir_statistiques_modele(model_id: str):
     
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des statistiques: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la récupération des statistiques")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_modeles.get("/{model_id}/feature-importance")
@@ -392,11 +386,9 @@ async def obtenir_importance_features(model_id: str):
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération de l'importance des features: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la récupération de l'importance des features")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_modeles.get("/{model_id}/predictions/recent")
@@ -434,11 +426,11 @@ async def obtenir_predictions_recentes(model_id: str, limite: int = 10):
             "predictions": predictions_list,
             "total": len(predictions_list)
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des prédictions: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération des prédictions")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_modeles.get("/{model_id}/statistiques")
@@ -485,11 +477,11 @@ async def obtenir_statistiques_modele(model_id: str):
             "donnees_entrainement": model_info["donnees_entrainement"],
             "features": model_info["features"]
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des statistiques: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération des statistiques")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_modeles.get("/comparaison/tous")
@@ -530,8 +522,8 @@ async def comparer_tous_modeles():
             "total": len(comparaison),
             "date_generation": datetime.utcnow().isoformat()
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la comparaison des modèles: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la comparaison des modèles")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")

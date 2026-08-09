@@ -8,12 +8,24 @@ Ce module initialise et configure l'application FastAPI avec :
 - Les événements de démarrage et arrêt
 """
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config.parametres import (
-    NOM_APP, VERSION_APP, DESCRIPTION_APP, ORIGINES_AUTORISEES
+    NOM_APP, VERSION_APP, DESCRIPTION_APP, ORIGINES_AUTORISEES,
+    NIVEAU_JOURNAL, FORMAT_JOURNAL
 )
 from utilitaires.base_donnees import initialiser_bd, fermer_bd
+
+# ============================================================================
+# CONFIGURATION DE LA JOURNALISATION
+# ============================================================================
+# Sans ceci, les logger.exception(...) des modules api/* ne seraient visibles
+# qu'via le handler de secours par défaut de Python (format minimal, pas de
+# contrôle du niveau). On applique ici le niveau et le format définis dans
+# config/parametres.py à toute l'application.
+logging.basicConfig(level=NIVEAU_JOURNAL, format=FORMAT_JOURNAL)
 
 # ============================================================================
 # INITIALISATION DE L'APPLICATION FASTAPI

@@ -1,10 +1,13 @@
 """
 API routes for managing yearly scholarship quotas
 """
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from utilitaires.base_donnees import GestionnaireBD
 from utilitaires.securite import exiger_role_admin
+
+logger = logging.getLogger(__name__)
 
 routeur_quotas = APIRouter(
     prefix="/api/v1/quotas",
@@ -30,11 +33,11 @@ async def obtenir_tous_quotas():
             "total": len(quotas),
             "quotas": quotas
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des quotas: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération des quotas")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 @routeur_quotas.get("/{annee}")
 async def obtenir_quota_annee(annee: int):
@@ -61,11 +64,9 @@ async def obtenir_quota_annee(annee: int):
         return quota
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération du quota: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la récupération du quota")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 @routeur_quotas.post("/{annee}")
 async def creer_ou_mettre_a_jour_quota(annee: int, nombre_bourses: int, utilisateur_admin: dict = Depends(exiger_role_admin)):
@@ -131,11 +132,9 @@ async def creer_ou_mettre_a_jour_quota(annee: int, nombre_bourses: int, utilisat
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la création/mise à jour du quota: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la création/mise à jour du quota")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 @routeur_quotas.delete("/{annee}")
 async def supprimer_quota(annee: int, utilisateur_admin: dict = Depends(exiger_role_admin)):
@@ -168,8 +167,6 @@ async def supprimer_quota(annee: int, utilisateur_admin: dict = Depends(exiger_r
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la suppression du quota: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la suppression du quota")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")

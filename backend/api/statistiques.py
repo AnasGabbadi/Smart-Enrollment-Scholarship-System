@@ -4,6 +4,7 @@ Endpoints API pour les statistiques et visualisations
 Fournit les statistiques agrégées du système et génère des visualisations
 des prédictions et données des modèles ML
 """
+import logging
 from fastapi import APIRouter, HTTPException
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -12,6 +13,7 @@ from utilitaires.visualisations import visualiseur
 from config.parametres import CHEMIN_DONNEES
 import os
 
+logger = logging.getLogger(__name__)
 
 # Créer le routeur avec le préfixe /api/v1/statistiques
 routeur_statistiques = APIRouter(
@@ -60,11 +62,11 @@ async def obtenir_resume_statistiques():
             },
             "date_generation": datetime.utcnow().isoformat()
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des statistiques: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération des statistiques")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_statistiques.get("/etudiants-par-annee")
@@ -100,11 +102,11 @@ async def obtenir_etudiants_par_annee():
                 str(r["_id"]): r["nombre"] for r in resultats
             }
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_statistiques.post("/generer-graphique-capacite")
@@ -147,11 +149,11 @@ async def generer_graphique_capacite_financiere():
             "nombre_predictions": len(predictions),
             "score_moyen": sum(scores) / len(scores) if scores else 0
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la génération du graphique: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la génération du graphique")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_statistiques.post("/generer-graphique-bourses")
@@ -197,11 +199,11 @@ async def generer_graphique_distribution_bourses():
             "distribution": distribution,
             "total_recommendations": sum(distribution.values())
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la génération du graphique: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la génération du graphique")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_statistiques.post("/generer-graphique-inscriptions")
@@ -247,11 +249,11 @@ async def generer_graphique_probabilites_inscription():
             "distribution": distribution,
             "total_predictions": sum(distribution.values())
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la génération du graphique: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la génération du graphique")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_statistiques.get("/telech/graphiques")
@@ -291,8 +293,8 @@ async def lister_graphiques_disponibles():
             "graphiques": graphiques,
             "total": len(graphiques)
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des graphiques: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération des graphiques")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")

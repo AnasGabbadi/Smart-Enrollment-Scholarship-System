@@ -2,6 +2,7 @@
 Endpoints API pour la gestion des étudiants
 Permet l'enregistrement et la récupération des informations des étudiants
 """
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 import uuid
@@ -10,6 +11,8 @@ from api.schemas import InscriptionEtudiant, ResultatEtudiant, RequeteConnexionE
 from utilitaires.base_donnees import GestionnaireBD
 from utilitaires.securite import exiger_role_admin
 from passlib.context import CryptContext
+
+logger = logging.getLogger(__name__)
 
 # Configuration pour le hachage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -116,11 +119,9 @@ async def enregistrer_etudiant(etudiant: InscriptionEtudiant):
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de l'enregistrement de l'étudiant: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de l'enregistrement de l'étudiant")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_etudiants.get("/")
@@ -158,11 +159,11 @@ async def lister_etudiants(saut: int = 0, limite: int = 10):
             "limite": limite,
             "etudiants": etudiants
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération des étudiants: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la récupération des étudiants")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_etudiants.post("/connexion")
@@ -213,11 +214,9 @@ async def connexion_etudiant(requete: RequeteConnexionEtudiant):
         
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la connexion: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la connexion")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_etudiants.get("/connexion/verifier/{email}")
@@ -247,11 +246,9 @@ async def verifier_etudiant(email: str):
 
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la vérification: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la vérification")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 
@@ -283,11 +280,9 @@ async def recuperer_etudiant(id_etudiant: str):
         return etudiant
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la récupération de l'étudiant: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la récupération de l'étudiant")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 @routeur_etudiants.put("/{id_etudiant}")
 async def mettre_a_jour_etudiant(id_etudiant: str, donnees: dict):
@@ -336,11 +331,9 @@ async def mettre_a_jour_etudiant(id_etudiant: str, donnees: dict):
         return etudiant_mis_a_jour
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la mise à jour de l'étudiant: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la mise à jour de l'étudiant")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_etudiants.delete("/{id_etudiant}")
@@ -373,11 +366,9 @@ async def supprimer_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends
         return {"message": "Étudiant supprimé avec succès"}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la suppression de l'étudiant: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la suppression de l'étudiant")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_etudiants.patch("/{id_etudiant}/approuver")
@@ -420,11 +411,9 @@ async def approuver_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends
         return etudiant
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de l'approbation: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de l'approbation")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_etudiants.patch("/{id_etudiant}/rejeter")
@@ -467,8 +456,6 @@ async def rejeter_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends(e
         return etudiant
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors du rejet: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors du rejet")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")

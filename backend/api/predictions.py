@@ -2,6 +2,7 @@
 Endpoints API pour les prédictions ML
 Fournit les prédictions de capacité financière, bourse et probabilité d'inscription
 """
+import logging
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 import uuid
@@ -15,6 +16,8 @@ from modeles.regression_lineaire import modele_regression
 from modeles.arbre_decision import modele_arbre
 from modeles.svm import modele_svm
 from utilitaires.base_donnees import GestionnaireBD
+
+logger = logging.getLogger(__name__)
 
 # Créer le routeur avec le préfixe /api/v1/predictions
 routeur_predictions = APIRouter(
@@ -86,11 +89,11 @@ async def predire_capacite_financiere(requete: RequeteCapaciteFinanciere):
                 "dependants": requete.donnees_financieres.dependants
             }
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la prédiction de capacité financière: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la prédiction de capacité financière")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_predictions.post("/recommandation-bourse", response_model=ReponseRecommandationBourse)
@@ -157,11 +160,11 @@ async def predire_recommandation_bourse(requete: RequeteRecommandationBourse):
                 "dependants": requete.donnees_financieres.dependants
             }
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la recommandation de bourse: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la recommandation de bourse")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_predictions.post("/probabilite-inscription", response_model=ReponseProabiliteInscription)
@@ -230,11 +233,11 @@ async def predire_probabilite_inscription(requete: RequeteProabiliteInscription)
                 "distance": requete.donnees_contextuelles.distance
             }
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la prédiction de probabilité d'inscription: {str(e)}"
-        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Erreur lors de la prédiction de probabilité d'inscription")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @routeur_predictions.get("/etudiant/{id_etudiant}/recommandations")
@@ -416,11 +419,6 @@ async def obtenir_recommandations_etudiant(id_etudiant: str) -> Dict[str, Any]:
         
     except HTTPException:
         raise
-    except Exception as e:
-        import traceback
-        print(f"Erreur dans obtenir_recommandations_etudiant: {str(e)}")
-        print(traceback.format_exc())
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur lors de la génération des recommandations: {str(e)}"
-        )
+    except Exception:
+        logger.exception("Erreur lors de la génération des recommandations")
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
