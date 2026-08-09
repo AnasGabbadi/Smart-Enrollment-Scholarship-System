@@ -50,15 +50,6 @@ dist/
 # Conda environments
 .conda/
 
-# Git internal files (should never be tracked)
-HEAD
-config
-description
-info/
-hooks/
-objects/
-refs/
-
 # Coverage
 .coverage
 htmlcov/
