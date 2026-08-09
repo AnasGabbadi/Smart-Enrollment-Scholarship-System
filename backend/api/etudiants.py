@@ -14,6 +14,10 @@ from passlib.context import CryptContext
 # Configuration pour le hachage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Projection MongoDB à appliquer sur toute lecture d'étudiant destinée à être
+# renvoyée au client : le hash bcrypt du mot de passe ne doit jamais sortir de l'API.
+PROJECTION_SANS_MOT_DE_PASSE = {"motDePasse": 0}
+
 # Créer le routeur avec le préfixe /api/v1/etudiants
 routeur_etudiants = APIRouter(
     prefix="/api/v1/etudiants",
@@ -141,7 +145,7 @@ async def lister_etudiants(saut: int = 0, limite: int = 10):
         
         # Récupérer les étudiants avec pagination
         etudiants = list(
-            collection_etudiants.find()
+            collection_etudiants.find({}, PROJECTION_SANS_MOT_DE_PASSE)
         )
         
         # Convertir les _id MongoDB en string
@@ -188,22 +192,20 @@ async def connexion_etudiant(requete: RequeteConnexionEtudiant):
                 detail="Email ou mot de passe incorrect"
             )
         
-        # Vérifier le mot de passe (comparaison simple pour démo, sinon utiliser pwd_context.verify)
-        # En production: utiliser bcrypt pour vérifier le hash
+        # Vérifier le mot de passe contre le hash bcrypt stocké
         if not pwd_context.verify(requete.password, etudiant.get("motDePasse", "")):
-            # Fallback: comparaison directe si mot de passe non hashé
-            if requete.password != etudiant.get("motDePasse", ""):
-                raise HTTPException(
-                    status_code=401,
-                    detail="Email ou mot de passe incorrect"
-                )
-        
+            raise HTTPException(
+                status_code=401,
+                detail="Email ou mot de passe incorrect"
+            )
+
         # Générer un token simple (en prod, utiliser JWT avec secret)
         token = "student-token-" + str(uuid.uuid4())
-        
-        # Préparer la réponse
+
+        # Préparer la réponse - ne jamais renvoyer le hash du mot de passe
         etudiant['_id'] = str(etudiant['_id'])
-        
+        etudiant.pop("motDePasse", None)
+
         return {
             "token": token,
             "etudiant": etudiant
@@ -232,17 +234,17 @@ async def verifier_etudiant(email: str):
     try:
         collection_etudiants = GestionnaireBD.obtenir_collection_etudiants()
         
-        etudiant = collection_etudiants.find_one({"email": email})
-        
+        etudiant = collection_etudiants.find_one({"email": email}, PROJECTION_SANS_MOT_DE_PASSE)
+
         if not etudiant:
             raise HTTPException(
                 status_code=404,
                 detail="Étudiant non trouvé"
             )
-        
+
         etudiant['_id'] = str(etudiant['_id'])
         return etudiant
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -269,14 +271,14 @@ async def recuperer_etudiant(id_etudiant: str):
     """
     try:
         collection_etudiants = GestionnaireBD.obtenir_collection_etudiants()
-        etudiant = collection_etudiants.find_one({"idEtudiant": id_etudiant})
-        
+        etudiant = collection_etudiants.find_one({"idEtudiant": id_etudiant}, PROJECTION_SANS_MOT_DE_PASSE)
+
         if not etudiant:
             raise HTTPException(
                 status_code=404,
                 detail="Étudiant non trouvé"
             )
-        
+
         etudiant['_id'] = str(etudiant['_id'])
         return etudiant
     except HTTPException:
@@ -329,7 +331,7 @@ async def mettre_a_jour_etudiant(id_etudiant: str, donnees: dict):
             )
         
         # Retourner l'étudiant mis à jour
-        etudiant_mis_a_jour = collection_etudiants.find_one({"idEtudiant": id_etudiant})
+        etudiant_mis_a_jour = collection_etudiants.find_one({"idEtudiant": id_etudiant}, PROJECTION_SANS_MOT_DE_PASSE)
         etudiant_mis_a_jour['_id'] = str(etudiant_mis_a_jour['_id'])
         return etudiant_mis_a_jour
     except HTTPException:
@@ -413,7 +415,7 @@ async def approuver_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends
                 detail="Étudiant non trouvé"
             )
         
-        etudiant = collection_etudiants.find_one({"idEtudiant": id_etudiant})
+        etudiant = collection_etudiants.find_one({"idEtudiant": id_etudiant}, PROJECTION_SANS_MOT_DE_PASSE)
         etudiant['_id'] = str(etudiant['_id'])
         return etudiant
     except HTTPException:
@@ -460,7 +462,7 @@ async def rejeter_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends(e
                 detail="Étudiant non trouvé"
             )
         
-        etudiant = collection_etudiants.find_one({"idEtudiant": id_etudiant})
+        etudiant = collection_etudiants.find_one({"idEtudiant": id_etudiant}, PROJECTION_SANS_MOT_DE_PASSE)
         etudiant['_id'] = str(etudiant['_id'])
         return etudiant
     except HTTPException:
