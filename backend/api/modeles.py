@@ -125,7 +125,8 @@ async def lister_modeles():
                 total_predictions = GestionnaireBD.obtenir_collection_predictions().count_documents(
                     {"model_id": model_id}
                 )
-            except:
+            except Exception as e:
+                logger.warning(f"Impossible de compter les prédictions pour le modèle {model_id}: {e}")
                 total_predictions = 0
             
             modeles.append({

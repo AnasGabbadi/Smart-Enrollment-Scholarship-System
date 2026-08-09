@@ -2,9 +2,14 @@
 Module de gestion de la base de données MongoDB
 Gère les connexions et les collections
 """
+import logging
+
 from pymongo import MongoClient
 import os
 from config.parametres import URL_MONGODB, NOM_BASE_DONNEES
+
+logger = logging.getLogger(__name__)
+
 
 class GestionnaireBD:
     """
@@ -84,8 +89,8 @@ class GestionnaireBD:
                 if index_info['name'] != '_id_':
                     try:
                         collection.drop_index(index_info['name'])
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"Impossible de supprimer l'index {index_info['name']}: {e}")
             
             # Index compound sur email + année (permet même email dans années différentes)
             collection.create_index([("email", 1), ("annee", 1)], unique=True)

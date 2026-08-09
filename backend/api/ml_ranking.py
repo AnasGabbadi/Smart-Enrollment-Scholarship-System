@@ -310,7 +310,8 @@ async def ranger_etudiants_par_annee(year: int):
                 if isinstance(score_regression, dict):
                     score_regression = score_regression.get('prediction', score_regression.get('score', 50.0))
                 score_regression = float(score_regression)
-            except:
+            except Exception as e:
+                logger.warning(f"Échec de la prédiction régression pour un étudiant, score par défaut utilisé: {e}")
                 score_regression = 50.0
             
             try:
@@ -321,7 +322,8 @@ async def ranger_etudiants_par_annee(year: int):
                 score_arbre = float(score_arbre)
                 # Convert from 0-3 to 0-100: map 0->0, 1->33, 2->67, 3->100
                 score_arbre = (score_arbre / 3.0) * 100
-            except:
+            except Exception as e:
+                logger.warning(f"Échec de la prédiction arbre de décision pour un étudiant, score par défaut utilisé: {e}")
                 score_arbre = 50.0
             
             try:
@@ -339,7 +341,8 @@ async def ranger_etudiants_par_annee(year: int):
                     score_svm = float(score_svm)
                     score_svm = (score_svm / 2.0) * 100
                 score_svm = float(score_svm)
-            except:
+            except Exception as e:
+                logger.warning(f"Échec de la prédiction SVM pour un étudiant, score par défaut utilisé: {e}")
                 score_svm = 50.0
             
             # Average score across models

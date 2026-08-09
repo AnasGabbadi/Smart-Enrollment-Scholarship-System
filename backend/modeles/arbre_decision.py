@@ -4,11 +4,14 @@ Modèle Arbre de Décision pour recommandation de bourse
 Classe les étudiants dans 4 catégories de bourses basées sur
 leurs performances académiques et situation financière
 """
+import logging
 import os
 import pickle
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from config.parametres import CHEMIN_MODELES_ENTRAINES
+
+logger = logging.getLogger(__name__)
 
 
 class ModeleArbreDecision:
@@ -51,8 +54,8 @@ class ModeleArbreDecision:
         y_dummy = np.array([1, 3, 0, 2])  # Classes
         try:
             self.modele.fit(X_dummy, y_dummy)
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Échec de l'initialisation du modèle d'arbre de décision par défaut: {e}")
     
     def entraîner(self, X_train, y_train):
         """
@@ -104,7 +107,8 @@ class ModeleArbreDecision:
                     distance = 50  # Valeur par défaut
                 else:
                     return 0  # Pas de bourse si données insuffisantes
-            except:
+            except Exception as e:
+                logger.warning(f"Impossible d'extraire les caractéristiques pour la prédiction de secours: {e}")
                 return 0
             
             # Logique de décision basée sur les critères académiques et financiers
@@ -145,7 +149,8 @@ class ModeleArbreDecision:
             from sklearn.tree import export_text
             if self.modele:
                 return export_text(self.modele)
-        except:
+        except Exception as e:
+            logger.warning(f"Impossible d'extraire les règles du modèle: {e}")
             return None
 
 

@@ -12,11 +12,14 @@ Avantages du SGDClassifier:
 - Très efficace sur les gros datasets (>100k samples)
 - Pas de timeout ou erreur de mémoire
 """
+import logging
 import os
 import pickle
 import numpy as np
 from sklearn.linear_model import SGDClassifier
 from config.parametres import CHEMIN_MODELES_ENTRAINES
+
+logger = logging.getLogger(__name__)
 
 
 class ModeleSVM:
@@ -60,8 +63,8 @@ class ModeleSVM:
         y_dummy = np.array([2, 2, 1, 0, 0])
         try:
             self.modele.fit(X_dummy, y_dummy)
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Échec de l'initialisation du modèle SVM par défaut: {e}")
     
     def entraîner(self, X_train, y_train):
         """
@@ -127,7 +130,8 @@ class ModeleSVM:
                     dependants = 1  # Valeur par défaut
                 else:
                     return {'classe': 1, 'confiance': 0.5}
-            except:
+            except Exception as e:
+                logger.warning(f"Impossible d'extraire les caractéristiques pour la prédiction de secours: {e}")
                 return {'classe': 1, 'confiance': 0.5}
             
             score_complet = (gpa/20) * 40 + (note_exam/100) * 30 - (revenu/100000) * 20 - (distance/200) * 10

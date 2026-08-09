@@ -76,8 +76,9 @@ async def predire_capacite_financiere(requete: RequeteCapaciteFinanciere):
                 "message": message,
                 "date_creation": datetime.utcnow()
             })
-        except:
-            pass  # Ne pas bloquer la réponse si l'enregistrement échoue
+        except Exception as e:
+            # Ne pas bloquer la réponse si l'enregistrement échoue
+            logger.warning(f"Échec de l'enregistrement de la prédiction de capacité financière: {e}")
         
         return {
             "scoreFinancier": round(score, 2),
@@ -147,8 +148,8 @@ async def predire_recommandation_bourse(requete: RequeteRecommandationBourse):
                 "pourcentage": recommandation['pourcentage'],
                 "date_creation": datetime.utcnow()
             })
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Échec de l'enregistrement de la recommandation de bourse: {e}")
         
         return {
             "typeBourse": recommandation['nom'],
@@ -219,8 +220,8 @@ async def predire_probabilite_inscription(requete: RequeteProabiliteInscription)
                 "confiance": confiance,
                 "date_creation": datetime.utcnow()
             })
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Échec de l'enregistrement de la prédiction de probabilité d'inscription: {e}")
         
         return {
             "probabiliteInscription": niveau,
