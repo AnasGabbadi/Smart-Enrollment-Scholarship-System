@@ -2,15 +2,14 @@
 Endpoints API pour la gestion des étudiants
 Permet l'enregistrement et la récupération des informations des étudiants
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 import uuid
 from datetime import datetime
 from api.schemas import InscriptionEtudiant, ResultatEtudiant, RequeteConnexionEtudiant
 from utilitaires.base_donnees import GestionnaireBD
+from utilitaires.securite import exiger_role_admin
 from passlib.context import CryptContext
-import jwt
-import os
 
 # Configuration pour le hachage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -343,17 +342,19 @@ async def mettre_a_jour_etudiant(id_etudiant: str, donnees: dict):
 
 
 @routeur_etudiants.delete("/{id_etudiant}")
-async def supprimer_etudiant(id_etudiant: str):
+async def supprimer_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends(exiger_role_admin)):
     """
-    Supprimer un étudiant du système
-    
+    Supprimer un étudiant du système (réservé aux administrateurs)
+
     Args:
         id_etudiant: Identifiant unique de l'étudiant
-        
+
     Returns:
         dict: Message de confirmation
-        
+
     Raises:
+        HTTPException 401: Authentification manquante ou invalide
+        HTTPException 403: Utilisateur authentifié mais non admin
         HTTPException: Si l'étudiant n'existe pas ou en cas d'erreur
     """
     try:
@@ -378,17 +379,19 @@ async def supprimer_etudiant(id_etudiant: str):
 
 
 @routeur_etudiants.patch("/{id_etudiant}/approuver")
-async def approuver_etudiant(id_etudiant: str):
+async def approuver_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends(exiger_role_admin)):
     """
-    Approuver un étudiant
-    
+    Approuver un étudiant (réservé aux administrateurs)
+
     Args:
         id_etudiant: Identifiant unique de l'étudiant
-        
+
     Returns:
         dict: Étudiant approuvé
-        
+
     Raises:
+        HTTPException 401: Authentification manquante ou invalide
+        HTTPException 403: Utilisateur authentifié mais non admin
         HTTPException: Si l'étudiant n'existe pas
     """
     try:
@@ -423,17 +426,19 @@ async def approuver_etudiant(id_etudiant: str):
 
 
 @routeur_etudiants.patch("/{id_etudiant}/rejeter")
-async def rejeter_etudiant(id_etudiant: str):
+async def rejeter_etudiant(id_etudiant: str, utilisateur_admin: dict = Depends(exiger_role_admin)):
     """
-    Rejeter un étudiant
-    
+    Rejeter un étudiant (réservé aux administrateurs)
+
     Args:
         id_etudiant: Identifiant unique de l'étudiant
-        
+
     Returns:
         dict: Étudiant rejeté
-        
+
     Raises:
+        HTTPException 401: Authentification manquante ou invalide
+        HTTPException 403: Utilisateur authentifié mais non admin
         HTTPException: Si l'étudiant n'existe pas
     """
     try:

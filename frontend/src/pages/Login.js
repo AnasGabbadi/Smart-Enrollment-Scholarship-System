@@ -3,11 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, AlertCircle, Eye, EyeOff, Lock } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import api from '../services/api';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@admin.com');
-  const [password, setPassword] = useState('adminpassword');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,16 +19,16 @@ const Login = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // For demo purposes, accept hardcoded admin credentials
-      if (email === 'admin@admin.com' && password === 'adminpassword') {
-        const token = 'admin-token-' + Date.now();
-        onLogin(token, 'admin', { email, name: 'Admin User', role: 'admin' });
-        navigate('/admin/dashboard');
-      } else {
-        setError('Identifiants invalides. Veuillez utiliser les identifiants administrateur corrects.');
-      }
+      const reponse = await api.post('/auth/connexion', { email, password });
+      const { token } = reponse.data;
+      onLogin(token, 'admin', { email, name: 'Admin User', role: 'admin' });
+      navigate('/admin/dashboard');
     } catch (err) {
-      setError('Échec de la connexion. Veuillez réessayer.');
+      if (err.response?.status === 401) {
+        setError('Identifiants invalides. Veuillez utiliser les identifiants administrateur corrects.');
+      } else {
+        setError('Échec de la connexion. Veuillez réessayer.');
+      }
     } finally {
       setLoading(false);
     }
@@ -123,30 +124,6 @@ const Login = ({ onLogin }) => {
                   <span>{loading ? '⏳ Connexion en cours...' : '🚀 Accéder au Tableau de Bord'}</span>
                 </button>
               </form>
-
-              {/* Divider */}
-              <div className="my-6 flex items-center">
-                <div className="flex-1 border-t border-gray-300"></div>
-                <div className="px-3 text-gray-500 text-sm">Identifiants Démo</div>
-                <div className="flex-1 border-t border-gray-300"></div>
-              </div>
-
-              {/* Demo Credentials Card */}
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-amber-50 border border-blue-200 rounded-lg">
-                <p className="text-sm font-bold text-blue-900 mb-3 flex items-center space-x-2">
-                  <span>📋 Identifiants de Démonstration:</span>
-                </p>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600 text-sm">Email:</span>
-                    <code className="bg-white px-3 py-1 rounded border border-blue-200 text-blue-700 font-mono text-sm">admin@admin.com</code>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600 text-sm">Mot de passe:</span>
-                    <code className="bg-white px-3 py-1 rounded border border-blue-200 text-blue-700 font-mono text-sm">adminpassword</code>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Footer Link */}

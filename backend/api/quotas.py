@@ -1,9 +1,10 @@
 """
 API routes for managing yearly scholarship quotas
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from utilitaires.base_donnees import GestionnaireBD
+from utilitaires.securite import exiger_role_admin
 
 routeur_quotas = APIRouter(
     prefix="/api/v1/quotas",
@@ -67,16 +68,20 @@ async def obtenir_quota_annee(annee: int):
         )
 
 @routeur_quotas.post("/{annee}")
-async def creer_ou_mettre_a_jour_quota(annee: int, nombre_bourses: int):
+async def creer_ou_mettre_a_jour_quota(annee: int, nombre_bourses: int, utilisateur_admin: dict = Depends(exiger_role_admin)):
     """
-    Créer ou mettre à jour le quota de bourses pour une année
-    
+    Créer ou mettre à jour le quota de bourses pour une année (réservé aux administrateurs)
+
     Args:
         annee: L'année concernée
         nombre_bourses: Nombre de bourses disponibles
-        
+
     Returns:
         dict: Le quota créé ou mis à jour
+
+    Raises:
+        HTTPException 401: Authentification manquante ou invalide
+        HTTPException 403: Utilisateur authentifié mais non admin
     """
     try:
         if nombre_bourses < 0:
@@ -133,15 +138,19 @@ async def creer_ou_mettre_a_jour_quota(annee: int, nombre_bourses: int):
         )
 
 @routeur_quotas.delete("/{annee}")
-async def supprimer_quota(annee: int):
+async def supprimer_quota(annee: int, utilisateur_admin: dict = Depends(exiger_role_admin)):
     """
-    Supprimer le quota de bourses pour une année
-    
+    Supprimer le quota de bourses pour une année (réservé aux administrateurs)
+
     Args:
         annee: L'année concernée
-        
+
     Returns:
         dict: Message de confirmation
+
+    Raises:
+        HTTPException 401: Authentification manquante ou invalide
+        HTTPException 403: Utilisateur authentifié mais non admin
     """
     try:
         collection_quotas = GestionnaireBD.obtenir_collection_quotas()

@@ -111,6 +111,7 @@ async def verifier_sante():
 # INCLURE LES ROUTEURS DES ENDPOINTS
 # ============================================================================
 
+from api.auth import routeur_auth
 from api.etudiants import routeur_etudiants
 from api.predictions import routeur_predictions
 from api.statistiques import routeur_statistiques
@@ -119,6 +120,7 @@ from api.quotas import routeur_quotas
 from api.ml_ranking import routeur_ml_ranking
 
 # Inclure tous les routeurs dans l'application
+application.include_router(routeur_auth)
 application.include_router(routeur_etudiants)
 application.include_router(routeur_predictions)
 application.include_router(routeur_statistiques)
