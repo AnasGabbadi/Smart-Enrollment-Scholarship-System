@@ -434,57 +434,6 @@ async def obtenir_predictions_recentes(model_id: str, limite: int = 10):
         raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
-@routeur_modeles.get("/{model_id}/statistiques")
-async def obtenir_statistiques_modele(model_id: str):
-    """
-    Obtenir les statistiques complètes d'un modèle
-    
-    Args:
-        model_id: Identifiant du modèle
-    
-    Returns:
-        dict: Statistiques du modèle
-    """
-    try:
-        if model_id not in MODELES_INFO:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Modèle '{model_id}' non trouvé"
-            )
-        
-        model_info = MODELES_INFO[model_id]
-        
-        # Compter les prédictions
-        total_predictions = GestionnaireBD.obtenir_collection_predictions().count_documents(
-            {"model_id": model_id}
-        )
-        
-        # Obtenir la date de la dernière prédiction
-        derniere_pred = GestionnaireBD.obtenir_collection_predictions().find_one(
-            {"model_id": model_id},
-            sort=[("timestamp", -1)]
-        )
-        
-        return {
-            "model_id": model_id,
-            "nom": model_info["nom"],
-            "type": model_info["type"],
-            "statut": model_info["statut"],
-            "version": model_info["version"],
-            "date_entrainement": model_info["dates_entrainement"],
-            "total_predictions": total_predictions,
-            "derniere_prediction": derniere_pred.get("timestamp") if derniere_pred else None,
-            "metriques": model_info["metriques"],
-            "donnees_entrainement": model_info["donnees_entrainement"],
-            "features": model_info["features"]
-        }
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Erreur lors de la récupération des statistiques")
-        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
-
-
 @routeur_modeles.get("/comparaison/tous")
 async def comparer_tous_modeles():
     """
