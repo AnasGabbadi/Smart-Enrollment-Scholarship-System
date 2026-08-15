@@ -152,9 +152,9 @@ const Slide9 = () => {
             <h3 className="text-xl font-bold text-gray-900 mb-4">📈 Résultats de Notre Implémentation</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
-                { metric: 'R² Score', value: '0.9828', meaning: '98.28%' },
-                { metric: 'RMSE', value: '1.1273', meaning: 'Erreur faible' },
-                { metric: 'MAE', value: '0.89', meaning: 'Très précis' },
+                { metric: 'R² Score', value: '0.285', meaning: '28.5% variance expliquée' },
+                { metric: 'RMSE', value: '12.14', meaning: 'Échelle 0-100' },
+                { metric: 'MAE', value: '9.67', meaning: 'Erreur moyenne absolue' },
               ].map((result, idx) => (
                 <div key={idx} className="bg-white rounded-lg p-4 shadow text-center">
                   <p className="text-sm font-semibold text-green-700">{result.metric}</p>

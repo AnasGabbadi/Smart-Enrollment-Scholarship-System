@@ -100,14 +100,14 @@ Chaque slide inclut:
 ```
 - Principe: Relation mathématique linéaire
 - Graphique: Ligne de régression avec données
-- Performance: R² = 0.9828 (98.28%)
+- Performance: R² = 0.285 (28.5%) — synthetic dataset, seed 42, voir README section "Dataset"
 ```
 
 ### Exemple - Slide 10 (Arbre de Décision)
 ```
 - Principe: Questions/Règles conditionnelles
 - Graphique: Distribution des décisions (approuvés/rejetés)
-- Performance: Accuracy = 94.46%
+- Performance: Accuracy = 46.5% — synthetic dataset, seed 42, voir README section "Dataset"
 ```
 
 ## 🎨 Design et Couleurs

@@ -20,15 +20,15 @@ const Slide14 = () => {
     },
   };
 
-  // Performance data
+  // Performance data (dataset synthétique, seed 42, 30k lignes - voir README)
   const performanceData = [
-    { model: 'Régression', accuracy: 98.28, precision: 97.2, f1: 0.9828 },
-    { model: 'Arbre', accuracy: 94.46, precision: 95.2, f1: 0.9447 },
-    { model: 'SVM', accuracy: 94.13, precision: 94.8, f1: 0.9336 },
+    { model: 'Régression', accuracy: 28.5, f1: 0.285 },
+    { model: 'Arbre', accuracy: 46.5, precision: 48.9, f1: 0.432 },
+    { model: 'SVM', accuracy: 46.9, precision: 45.4, f1: 0.411 },
   ];
 
   const metricsData = [
-    { name: 'Précision', value: 96.5 },
+    { name: 'Précision', value: 47.1 },
     { name: 'Fiabilité', value: 95.8 },
     { name: 'Rapidité', value: 99.2 },
     { name: 'Équité', value: 97.1 },
@@ -86,23 +86,23 @@ const Slide14 = () => {
               {
                 icon: '📉',
                 model: 'Régression Linéaire',
-                r2: '0.9828',
-                rmse: '1.1273',
-                desc: 'Excellence en prédiction continue'
+                r2: '0.285',
+                rmse: '12.14',
+                desc: 'Signal réel sur données synthétiques bruitées'
               },
               {
                 icon: '🌳',
                 model: 'Arbre de Décision',
-                accuracy: '94.46%',
-                f1: '0.9447',
-                desc: 'Très bon sur les règles'
+                accuracy: '46.5%',
+                f1: '0.432',
+                desc: 'Nettement au-dessus du hasard (25%)'
               },
               {
                 icon: '🚀',
                 model: 'SVM/SGD',
-                accuracy: '94.13%',
-                f1: '0.9336',
-                desc: 'Excellent sur données complexes'
+                accuracy: '46.9%',
+                f1: '0.411',
+                desc: 'Nettement au-dessus du hasard (33%)'
               },
             ].map((result, idx) => (
               <motion.div
@@ -201,9 +201,9 @@ const Slide14 = () => {
             <div className="flex items-start gap-4">
               <span className="text-2xl sm:text-3xl md:text-4xl">✅</span>
               <div>
-                <h3 className="text-sm md:text-base md:text-xl font-bold mb-2">Résultats Excellent</h3>
+                <h3 className="text-sm md:text-base md:text-xl font-bold mb-2">Résultats Réels et Transparents</h3>
                 <p className="text-sm md:text-base opacity-90">
-                  Le système démontre des performances exceptionnelles avec une précision globale de 96.5% et une grande fiabilité pour les décisions d'admission et d'attribution de bourses.
+                  Sur un dataset synthétique volontairement bruité (30 000 étudiants, seed fixe), les modèles atteignent des performances nettement supérieures au hasard (~47% de précision pondérée) tout en restant honnêtes sur un problème de prédiction imparfait, plutôt que d'afficher des scores irréalistes proches de 100%.
                 </p>
               </div>
             </div>

@@ -17,6 +17,7 @@ import os
 import pickle
 import numpy as np
 from sklearn.linear_model import SGDClassifier
+from sklearn.preprocessing import StandardScaler
 from config.parametres import CHEMIN_MODELES_ENTRAINES
 
 logger = logging.getLogger(__name__)
@@ -26,21 +27,35 @@ class ModeleSVM:
     """
     Gestionnaire du modèle pour prédiction de probabilité d'inscription
     Utilise SGDClassifier pour efficacité sur gros datasets
+
+    SGDClassifier est sensible à l'échelle des features (contrairement à
+    LinearRegression/DecisionTree) : sans mise à l'échelle, family_income
+    (milliers) écrase gpa (4-20) dans le gradient et le modèle tombe sous
+    la baseline "classe majoritaire". Un StandardScaler est donc entraîné
+    avec le modèle et persisté à ses côtés, puis réappliqué à l'inférence.
     """
-    
+
     def __init__(self):
         """Initialiser le modèle"""
         self.modele = None
+        self.scaler = None
         self.nom_fichier = "modele_svm.pkl"
         self.chemin_complet = os.path.join(CHEMIN_MODELES_ENTRAINES, self.nom_fichier)
         self._charger_modele()
-    
+
     def _charger_modele(self):
-        """Charger le modèle à partir du fichier"""
+        """Charger le modèle (et son scaler) à partir du fichier"""
         try:
             if os.path.exists(self.chemin_complet):
                 with open(self.chemin_complet, 'rb') as f:
-                    self.modele = pickle.load(f)
+                    donnees = pickle.load(f)
+                if isinstance(donnees, dict):
+                    self.modele = donnees['modele']
+                    self.scaler = donnees['scaler']
+                else:
+                    # Compatibilité avec d'anciens .pkl sauvegardés sans scaler
+                    self.modele = donnees
+                    self.scaler = None
                 print(f"[✓] Modèle SGD chargé")
             else:
                 print(f"[⚠] Modèle non trouvé: {self.chemin_complet}")
@@ -48,33 +63,35 @@ class ModeleSVM:
         except Exception as e:
             print(f"[✗] Erreur lors du chargement du modèle: {e}")
             self._creer_modele_par_defaut()
-    
+
     def _creer_modele_par_defaut(self):
         """Créer un modèle par défaut avec données minimales"""
         self.modele = SGDClassifier(loss='hinge', n_jobs=-1, random_state=42, n_iter_no_change=10, warm_start=False)
-        # Données synthétiques pour initialisation avec 5 features: [gpa, note_examen, revenu, dependants, distance]
+        # Données synthétiques pour initialisation avec 4 features: [gpa, note_examen, revenu, distance]
         X_dummy = np.array([
-            [18, 90, 5000, 1, 10],     # Fort, haute proba
-            [18, 85, 5000, 0, 20],     # Fort, haute proba
-            [12, 70, 30000, 2, 50],    # Moyen, proba moyenne
-            [10, 60, 50000, 3, 80],    # Faible, basse proba
-            [10, 50, 100000, 5, 100]   # Faible, très basse proba
+            [18, 90, 5000, 10],     # Fort, haute proba
+            [18, 85, 5000, 20],     # Fort, haute proba
+            [12, 70, 30000, 50],    # Moyen, proba moyenne
+            [10, 60, 50000, 80],    # Faible, basse proba
+            [10, 50, 100000, 100]   # Faible, très basse proba
         ])
         y_dummy = np.array([2, 2, 1, 0, 0])
         try:
-            self.modele.fit(X_dummy, y_dummy)
+            self.scaler = StandardScaler().fit(X_dummy)
+            self.modele.fit(self.scaler.transform(X_dummy), y_dummy)
         except Exception as e:
             logger.warning(f"Échec de l'initialisation du modèle SVM par défaut: {e}")
-    
+
     def entraîner(self, X_train, y_train):
         """
         Entraîner le modèle avec SGDClassifier
-        
+
         Args:
             X_train: Données [GPA, NoteExamen, Revenu, Distance]
             y_train: Classes [0, 1, 2]
         """
         try:
+            self.scaler = StandardScaler().fit(X_train)
             self.modele = SGDClassifier(
                 loss='hinge',
                 n_jobs=-1,
@@ -82,12 +99,12 @@ class ModeleSVM:
                 n_iter_no_change=10,
                 warm_start=False
             )
-            self.modele.fit(X_train, y_train)
+            self.modele.fit(self.scaler.transform(X_train), y_train)
             self._sauvegarder_modele()
             print("[✓] Modèle SGD entraîné avec succès")
         except Exception as e:
             print(f"[✗] Erreur lors de l'entraînement: {e}")
-    
+
     def predire(self, caracteristiques):
         """
         Prédire la probabilité d'inscription
@@ -105,6 +122,8 @@ class ModeleSVM:
                 self._creer_modele_par_defaut()
             
             X = np.array(caracteristiques).reshape(1, -1)
+            if self.scaler is not None:
+                X = self.scaler.transform(X)
             classe = int(self.modele.predict(X)[0])
             
             # Obtenir les probabilités pour calculer la confiance
@@ -144,10 +163,10 @@ class ModeleSVM:
                 return {'classe': 0, 'confiance': 0.5}
     
     def _sauvegarder_modele(self):
-        """Sauvegarder le modèle"""
+        """Sauvegarder le modèle et son scaler"""
         try:
             with open(self.chemin_complet, 'wb') as f:
-                pickle.dump(self.modele, f)
+                pickle.dump({'modele': self.modele, 'scaler': self.scaler}, f)
             print(f"[✓] Modèle sauvegardé: {self.chemin_complet}")
         except Exception as e:
             print(f"[✗] Erreur lors de la sauvegarde: {e}")

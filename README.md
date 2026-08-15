@@ -78,8 +78,9 @@ pip install -r requirements.txt
 Copy `.env.example` to `.env` and configure your MongoDB URI. Then:
 
 ```bash
-python train_models.py    # Train ML models (~2 min on 500k records)
-python application.py     # Start the API server
+python generate_dataset.py  # Generate the synthetic dataset (~5s, 30k rows)
+python train_models.py      # Train the 3 ML models (~seconds)
+python application.py       # Start the API server
 ```
 
 ### Frontend Setup
@@ -94,13 +95,42 @@ The app opens at `http://localhost:3000`. The API runs at `http://localhost:8000
 
 ## Dataset
 
-The synthetic dataset (`moroccan_students_scholarship_dataset_500k.csv`) contains 500,000 Moroccan student records with features such as GPA, exam scores, family income, dependents, distance, region, and labeled targets (financial capacity, scholarship class, enrollment probability).
+The original dataset used early in this project (500,000 rows) was lost and never committed — it was never versioned in git, only referenced by filename. Rather than ship a project that can't actually be trained end-to-end, the dataset is now **generated synthetically** by [`backend/generate_dataset.py`](backend/generate_dataset.py), with a fixed seed (`SEED = 42`) so it's fully reproducible: anyone who clones the repo gets the exact same data by running the script, instead of trusting an opaque 500k-row CSV nobody can verify.
 
-**⚠️ The dataset is not included in this repository** (it's gitignored, see `.gitignore`) and there is no script here to regenerate it. Without it, `train_models.py` cannot run, so `modeles_entraines/*.pkl` cannot be (re)produced.
+```bash
+cd backend
+python generate_dataset.py   # writes moroccan_students_scholarship_dataset.csv at the repo root
+```
 
-**Known limitation — silent heuristic fallback:** each model wrapper (`backend/modeles/regression_lineaire.py`, `arbre_decision.py`, `svm.py`) loads its `.pkl` on startup and, on any failure (missing file, or a `numpy`/`scikit-learn` version mismatch with the environment that pickled it — the versions must match `backend/requirements.txt`), silently falls back to a stub model fit on 4 hardcoded dummy rows, or to inline heuristic rules in `predire()`. This fallback logs a warning but does not fail startup or the API call, so predictions can look real while actually coming from the stub.
-- As shipped, only `modele_arbre_decision.pkl` exists under `modeles_entraines/`; `modele_regression_lineaire.pkl` and `modele_svm.pkl` are absent, so those two models **always** run on the heuristic fallback until you train on a real dataset.
-- If you have access to the original dataset, place it at the repo root and run `python train_models.py` inside a venv built from `backend/requirements.txt` (pinned `numpy==1.24.3`, `scikit-learn==1.3.2`) to produce trustworthy `.pkl` files.
+- **30,000 rows** by default (override with `N_LIGNES_DATASET`, e.g. `N_LIGNES_DATASET=50000 python generate_dataset.py`) — enough to train all 3 models properly, small enough to regenerate and train in seconds on any machine that clones the repo, instead of the original's 500k rows.
+- Columns: `gpa`, `exam_score`, `family_income`, `dependents`, `distance_km`, `region`, plus the 3 targets `financial_capacity_score` (regression), `scholarship_class` (0–3), and `enrollment_probability_class` (0–2).
+- Features are drawn from distributions chosen to resemble the real quantities (log-normal income, Poisson dependents, exponential distance, Moroccan-region weights), and each target is a weighted composite of the features **plus Gaussian noise added before thresholding** — so the problem has a real but imperfect signal, not a deterministic rule that would produce unrealistically perfect metrics.
+- **The generated CSV is gitignored** (`*.csv` in `.gitignore`) — only the generator script is committed. Every clone regenerates its own copy from the same seed rather than storing a 30k-row CSV in git history.
+
+**No more silent heuristic fallback:** each model wrapper (`backend/modeles/regression_lineaire.py`, `arbre_decision.py`, `svm.py`) loads its `.pkl` on startup and, on any failure (missing file, or a `numpy`/`scikit-learn` version mismatch with the environment that pickled it — the versions must match `backend/requirements.txt`), falls back to a stub model fit on a handful of hardcoded rows, or to inline heuristic rules in `predire()`. Running the two commands below produces all 3 `.pkl` files, so all 3 models load and predict from real trained weights instead of the fallback:
+
+```bash
+python generate_dataset.py
+python train_models.py       # 80/20 split, trains and saves all 3 models
+```
+
+### Model performance (30,000-row synthetic dataset, seed 42, 80/20 split)
+
+Recalculated from scratch against the regenerated dataset — not carried over from the old, lost 500k dataset.
+
+| Model | Target | Metric | Value |
+|-------|--------|--------|-------|
+| Linear Regression | `financial_capacity_score` | R² | 0.285 |
+| | | RMSE | 12.14 |
+| | | MAE | 9.67 |
+| Decision Tree | `scholarship_class` (4 classes) | Accuracy | 46.5% |
+| | | F1 (weighted) | 0.432 |
+| SGD Classifier ("SVM") | `enrollment_probability_class` (3 classes) | Accuracy | 46.9% |
+| | | F1 (weighted) | 0.411 |
+
+These are honest numbers for a noisy synthetic problem — well above chance (33%/25% baselines for 3/4-class targets) but not the near-perfect scores an opaque or leaky dataset would produce. `SGDClassifier` is scale-sensitive, so `svm.py` fits and persists a `StandardScaler` alongside the model and applies it at both train and inference time; skipping that step (as an earlier version of this pipeline did) silently drops accuracy below the majority-class baseline.
+
+To reproduce these numbers yourself: `cd backend && python generate_dataset.py && python train_models.py` — the script prints the same metrics recalculated live, not hardcoded.
 
 ## Documentation
 

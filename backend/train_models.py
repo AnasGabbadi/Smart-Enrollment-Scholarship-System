@@ -1,6 +1,7 @@
 """
-Script consolidated pour entraîner les modèles ML et insérer les données de test
-Charge 500k étudiants, entraîne avec 80/20 split et insère 1000 lignes en BD
+Script consolidated pour entraîner les 3 modèles ML
+Charge le dataset synthétique (généré par generate_dataset.py) et entraîne
+chaque modèle avec un split 80/20
 """
 import numpy as np
 import pandas as pd
@@ -9,6 +10,9 @@ import sys
 import warnings
 
 warnings.filterwarnings('ignore')
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -26,7 +30,16 @@ from utilitaires.base_donnees import GestionnaireBD
 
 def charger_donnees_reelles(chemin_csv, test_size=0.2):
     """
-    Charge le dataset réel de 500k étudiants et le divise en train/test 80/20
+    Charge le dataset synthétique et le divise en train/test 80/20
+
+    Chaque modèle est entraîné sur exactement le sous-ensemble de features
+    que son endpoint /api/v1/predictions correspondant envoie réellement
+    (cf. CONFIG_REGRESSION_LINEAIRE / CONFIG_ARBRE_DECISION / CONFIG_SVM
+    dans config/parametres.py, et api/predictions.py). Utiliser les mêmes
+    5 colonnes pour les 3 modèles produirait des .pkl dont la forme ne
+    correspond plus à ce que les endpoints envoient à l'inférence : chaque
+    appel échouerait alors silencieusement et retomberait sur le repli
+    heuristique, peu importe la qualité de l'entraînement.
     """
     print(f"\n[*] Chargement du dataset...")
     try:
@@ -35,7 +48,7 @@ def charger_donnees_reelles(chemin_csv, test_size=0.2):
     except Exception as e:
         print(f"[✗] Erreur lors du chargement: {e}")
         return None
-    
+
     # Afficher les stats
     print(f"\nStatistiques du dataset:")
     print(f"  GPA: [{df['gpa'].min():.2f}, {df['gpa'].max():.2f}]")
@@ -43,36 +56,39 @@ def charger_donnees_reelles(chemin_csv, test_size=0.2):
     print(f"  Family Income: [{df['family_income'].min():.0f}, {df['family_income'].max():.0f}] DH")
     print(f"  Dependents: [{df['dependents'].min():.0f}, {df['dependents'].max():.0f}]")
     print(f"  Distance: [{df['distance_km'].min():.2f}, {df['distance_km'].max():.2f}] km")
-    
-    # Préparer les features
-    X = df[['gpa', 'exam_score', 'family_income', 'dependents', 'distance_km']].values
+
+    # Préparer les features - un sous-ensemble distinct par modèle (voir
+    # docstring), aligné avec ce que chaque endpoint envoie à l'inférence
+    X_regression = df[['gpa', 'exam_score', 'family_income', 'dependents']].values
+    X_arbre = df[['gpa', 'family_income', 'dependents']].values
+    X_svm = df[['gpa', 'exam_score', 'family_income', 'distance_km']].values
+
     y_regression = df['financial_capacity_score'].values
     y_arbre = df['scholarship_class'].values
     y_svm = df['enrollment_probability_class'].values
-    
+
     # Split 80/20
     X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
-        X, y_regression, test_size=test_size, random_state=42
+        X_regression, y_regression, test_size=test_size, random_state=42
     )
-    
+
     X_train_arb, X_test_arb, y_train_arb, y_test_arb = train_test_split(
-        X, y_arbre, test_size=test_size, random_state=42
+        X_arbre, y_arbre, test_size=test_size, random_state=42
     )
-    
+
     X_train_svm, X_test_svm, y_train_svm, y_test_svm = train_test_split(
-        X, y_svm, test_size=test_size, random_state=42
+        X_svm, y_svm, test_size=test_size, random_state=42
     )
-    
+
     print(f"\n[✓] Données divisées:")
     print(f"    Train: {len(X_train_reg):,} (80%)")
     print(f"    Test: {len(X_test_reg):,} (20%)")
-    
+
     return {
         'regression': (X_train_reg, X_test_reg, y_train_reg, y_test_reg),
         'arbre': (X_train_arb, X_test_arb, y_train_arb, y_test_arb),
         'svm': (X_train_svm, X_test_svm, y_train_svm, y_test_svm),
         'dataframe': df,
-        'X': X
     }
 
 
@@ -160,7 +176,7 @@ def entrainer_modeles(donnees):
         modele_svm.entraîner(X_train_svm, y_train_svm)
         
         print(f"[*] Évaluation sur {len(X_test_svm):,} samples...")
-        y_pred_svm = modele_svm.modele.predict(X_test_svm)
+        y_pred_svm = modele_svm.modele.predict(modele_svm.scaler.transform(X_test_svm))
         
         accuracy = accuracy_score(y_test_svm, y_pred_svm)
         precision = precision_score(y_test_svm, y_pred_svm, average='weighted', zero_division=0)
@@ -263,30 +279,37 @@ def entrainer_modeles(donnees):
 #         return False
 
 
-def afficher_rapport(results):
+def afficher_rapport(results, donnees):
     """
-    Affiche le rapport final des performances
+    Affiche le rapport final des performances (métriques réelles, recalculées
+    sur le dataset effectivement chargé - pas de valeurs figées).
     """
+    n_total = len(donnees['dataframe'])
+    n_train = len(donnees['regression'][0])
+    n_test = len(donnees['regression'][1])
+
     print("\n" + "=" * 80)
     print("RAPPORT FINAL - PERFORMANCES DES MODÈLES")
     print("=" * 80)
-    
+
     print("\nCONFIGURATION:")
-    print(f"  • Dataset: 500,000 étudiants marocains")
-    print(f"  • Train/Test: 80%/20% (400k/100k)")
-    print(f"  • Features: GPA, Exam Score, Family Income, Dependents, Distance")
-    
+    print(f"  • Dataset: {n_total:,} étudiants (synthétique, seed fixe - voir generate_dataset.py)")
+    print(f"  • Train/Test: 80%/20% ({n_train:,}/{n_test:,})")
+    print(f"  • Régression: GPA, Exam Score, Family Income, Dependents")
+    print(f"  • Arbre de décision: GPA, Family Income, Dependents")
+    print(f"  • SGD/SVM: GPA, Exam Score, Family Income, Distance")
+
     print("\nRÉSULTATS:")
-    
+
     modeles_actifs = 0
-    
+
     if 'regression' in results:
         modeles_actifs += 1
         print(f"\n[✓] 1. RÉGRESSION LINÉAIRE - SUCCÈS")
-        print(f"      R² Score: {results['regression']['r2']:.4f} (98.28% variance expliquée)")
+        print(f"      R² Score: {results['regression']['r2']:.4f} ({results['regression']['r2']*100:.2f}% variance expliquée)")
         print(f"      RMSE: {results['regression']['rmse']:.4f}")
         print(f"      MAE: {results['regression']['mae']:.4f}")
-    
+
     if 'arbre' in results:
         modeles_actifs += 1
         print(f"\n[✓] 2. ARBRE DE DÉCISION - SUCCÈS")
@@ -294,22 +317,20 @@ def afficher_rapport(results):
         print(f"      Precision: {results['arbre']['precision']:.4f}")
         print(f"      Recall: {results['arbre']['recall']:.4f}")
         print(f"      F1-Score: {results['arbre']['f1']:.4f}")
-    
+
     if 'svm' in results:
         modeles_actifs += 1
-        print(f"\n[✓] 3. SVM - SUCCÈS")
+        print(f"\n[✓] 3. SGD/SVM - SUCCÈS")
         print(f"      Accuracy: {results['svm']['accuracy']*100:.2f}%")
         print(f"      Precision: {results['svm']['precision']:.4f}")
         print(f"      Recall: {results['svm']['recall']:.4f}")
         print(f"      F1-Score: {results['svm']['f1']:.4f}")
     else:
-        print(f"\n[⚠] 3. SVM - NON ENTRAÎNÉ")
-        print(f"      (Dataset trop volumineux - Recommandé: utiliser un sous-ensemble ou GPU)")
-    
+        print(f"\n[⚠] 3. SGD/SVM - NON ENTRAÎNÉ")
+
     print("\n" + "=" * 80)
     print(f"[✓] {modeles_actifs}/3 MODÈLES ENTRAÎNÉS AVEC SUCCÈS!")
     print("=" * 80)
-    print(f"\n✓ Les modèles {modeles_actifs} et 2 sont prêts pour les prédictions en production.")
     print("✓ Modèles sauvegardés dans: modeles_entraines/\n")
 
 
@@ -321,19 +342,24 @@ def main():
     print("PIPELINE COMPLET: ENTRAÎNEMENT ")
     print("=" * 80)
     
-    # Charger les données
-    chemin_csv = os.path.join(os.path.dirname(__file__), '..', 'moroccan_students_scholarship_dataset_500k.csv')
+    # Charger les données (générées par generate_dataset.py - voir README)
+    chemin_csv = os.path.join(os.path.dirname(__file__), '..', 'moroccan_students_scholarship_dataset.csv')
+    if not os.path.exists(chemin_csv):
+        print(f"[✗] Dataset introuvable: {chemin_csv}")
+        print("[*] Lancez d'abord: python generate_dataset.py")
+        return
+
     donnees = charger_donnees_reelles(chemin_csv, test_size=0.2)
-    
+
     if not donnees:
         print("[✗] Impossible de charger les données. Arrêt.")
         return
-    
+
     # Entraîner les modèles
     results = entrainer_modeles(donnees)
-    
+
     # Afficher le rapport
-    afficher_rapport(results)
+    afficher_rapport(results, donnees)
 
 
 if __name__ == "__main__":

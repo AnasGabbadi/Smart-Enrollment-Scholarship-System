@@ -159,9 +159,9 @@ const Slide10 = () => {
             <h3 className="text-xl font-bold text-gray-900 mb-4">📊 Résultats de Notre Implémentation</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
-                { metric: 'Accuracy', value: '94.46%', meaning: 'Très bon' },
-                { metric: 'Precision', value: '95.2%', meaning: 'Fiable' },
-                { metric: 'F1-Score', value: '0.9447', meaning: 'Excellent' },
+                { metric: 'Accuracy', value: '46.5%', meaning: 'Au-dessus du hasard (25%)' },
+                { metric: 'Precision', value: '48.9%', meaning: 'Pondérée' },
+                { metric: 'F1-Score', value: '0.432', meaning: 'Signal réel, données bruitées' },
               ].map((result, idx) => (
                 <div key={idx} className="bg-white rounded-lg p-4 shadow text-center">
                   <p className="text-sm font-semibold text-orange-700">{result.metric}</p>
